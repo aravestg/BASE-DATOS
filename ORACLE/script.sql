@@ -1,6 +1,6 @@
 -- Script con múltiples vulnerabilidades
 
--- 1. Uso de SQL dinámico sin sanitizar, permitiendo SQL Injection
+-- 1. Uso de SQL dinámico sin sanitizar, permitiendo SQL Injections
 CREATE OR REPLACE PROCEDURE fetch_user_data(user_id IN VARCHAR2) IS
     v_sql VARCHAR2(500);
     v_result VARCHAR2(500);
