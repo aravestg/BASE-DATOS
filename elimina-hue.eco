@@ -1,0 +1,189 @@
+       Identification division.
+      *------------------------
+       program-id.    graba-mov.
+       author.        Francisco Parra B.
+       date-written.  Nov. 2018.
+       security.      Programa que genera registros en ctactecl y 
+                      mov-diarios.
+     
+       Environment division.
+      *---------------------
+       configuration section.
+       special-names. crt status is mf-crt-status-name
+                        console is crt
+                        decimal-point is comma.
+
+       input-output section.
+       file-control.
+
+           select log assign to var-log
+              organization is line sequential.
+
+       Data division.
+      *--------------
+       file section.
+
+       fd log.
+       01 r-log.
+          03 numrut-log   pic 9(8).
+          03 digrut-log   pic x.
+          03 local-log    pic 9(3).
+          03 caja-log     pic 9(2).
+          03 docto-log    pic 9(9).
+	  03 fecom-log    pic 9(8).
+	  03 fecha-log    pic 9(8).
+	  03 os-log       pic 9(8).
+
+       working-storage section.
+
+           copy "/usr1/fuentes/2000/fte/call/atrib-pt".
+           copy "/usr1/fuentes/2000/fte/call/secu-esc".
+
+       01 estados.
+          03 st-sec       pic xx    value "00".
+
+       01 var-log.
+          02 filler       pic x(20)  value "/tempo/graba-mov-log".
+
+       01 variables. 
+	  02 eof-cli      pic x.
+          02 sn           pic x        value space.
+          02 sw-pro       pic x        value space.
+          02 glosa-w      pic x(30)    value spaces.
+          02 fvento-ws    pic x(8)     value spaces.
+          02 fecha-sys    pic x(8)     value spaces.
+          02 leidos       pic 9(9)     value zeros.
+          02 proces       pic 9(9)     value zeros.
+          02 cont-lei     pic 9(7)     value zeros.
+          02 cont-pro     pic 9(7)     value zeros.
+          02 car-fin      pic x        value x"00".
+          02 nombre-ws    pic x(51)    value spaces.
+          02 ind          pic 99       value zeros.
+          02 valtec       pic 99       value zeros.
+	  02 tefec-w      pic 9(3)v9(5).
+	  02 opera-w.
+	     05 oper-w    pic x.
+             05 cta-w     pic 9(4).
+
+       01 editados.
+          02 valor-ed        pic zzz.zzz.zzz.
+
+       exec sql begin declare section end-exec.
+       exec sql
+          include "/RESPALDO/FTESQL/estructuras/vta-huella.ws"
+       end-exec.
+       exec sql
+          include "/RESPALDO/FTESQL/estructuras/mov-diarios.ws"
+       end-exec.
+       exec sql
+          include "/RESPALDO/FTESQL/estructuras/clcr.ws"
+       end-exec.
+       exec sql end declare section end-exec.
+
+       exec sql begin declare section end-exec.
+       01 var-sql.
+          02 st-bd           pic x.
+	  02 nroreg          pic s9(9) comp-5.
+	  02 codt-w          pic 99.
+       exec sql end declare section end-exec.
+
+       Procedure division.
+      *-------------------
+       main section.
+           call mf-adis using mf-set-default-table mf-adis-control.
+           call mf-adis-map using mf-set-local-table mf-adis-control.
+           call "call-conecta" using st-bd.
+           cancel "call-conecta".
+           if st-bd = "n"
+              call "r-hold" using sn, by content
+              "Error : no hay conexion con BD... {}"
+              goback
+           end-if.
+           initialize variables
+           call "r-rfec" using fecha-sys by content "CCAAMMDD|"
+
+	   open extend log.
+           perform procesar-datos
+	   close log.
+           
+           goback.
+
+       procesar-datos.
+	   display spaces at 0101.
+
+	   display "ELIMINA MOV-DIARIOS " at 0130.
+
+	   display "Local..........:" at 0205.
+	   display "Caja...........:" at 0305.
+	   display "Docto..........:" at 0405.
+	   display "fecha..........:" at 0505.
+	   display "tipmov.........:" at 0605.
+	   display "Rut..sin digito:" at 0705.
+
+	   display "Monto .........:" at 1005.
+	   display "Empresa........:" at 1105.
+
+           initialize r-vta-huella
+	   perform aceptar-datos.
+
+		 
+       
+       aceptar-datos.
+	   accept local-hue   at 0222.
+	   accept caja-hue    at 0322.
+	   accept docto-hue   at 0422.
+	   accept fecom-hue   at 0522.
+	   accept tipmov-hue  at 0622.
+	   accept rut-hue     at 0722.
+
+           exec sql
+	      select local_hue, caja_hue, docto_hue, 
+		     fecom_hue, tipmov_hue, rut_hue, monven_hue, 
+		     empresa_hue, tarjeta_hue
+	       into :local-hue, :caja-hue, :docto-hue, 
+		     :fecom-hue, :tipmov-hue, :rut-hue,
+		     :monven-hue, :empresa-hue, :tarjeta-hue
+	      from vta_huella 
+	      where 
+		    local_hue  = :local-hue  and
+	            caja_hue   = :caja-hue   and
+		    docto_hue  = :docto-hue  and
+		    fecom_hue  = :fecom-hue  and
+		    tipmov_hue = :tipmov-hue and
+		    rut_hue    = :rut-hue
+	   end-exec 
+
+           if sqlcode = 0
+	      display monven-hue   at 1022 
+              display empresa-hue at 1122
+
+	      display "Elim. datos ....(S/N)...(_)" at 1901 
+	      accept sn                  at 1926 end-accept 
+
+	      if sn = "s" or "S"
+                 move zeros to nroreg
+		 exec sql
+		     delete from vta_huella
+	             where 
+		         local_hue  = :local-hue  and
+	                 caja_hue   = :caja-hue   and
+		         docto_hue  = :docto-hue  and
+		         fecom_hue  = :fecom-hue  and
+		         tipmov_hue = :tipmov-hue and
+		         rut_hue    = :rut-hue
+
+                 end-exec
+		 exec sql get diagnostics
+		     :nroreg = row_count
+	         end-exec
+	         if nroreg = 0 
+	            display "Registro NO eliminado...." at 2301 
+	            accept sn at 2401 end-accept
+		 end-if
+	      end-if
+	   else
+	      display "Registro NO existe......" at 2301 
+	      accept sn at 2401.
+      *fin-aceptar-datos.
+      *
+
