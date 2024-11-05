@@ -55,19 +55,19 @@ jobs:
           FILES_WITHOUT_COMMIT: ${{ env.files_without_commit }}
         run: |
           ISSUE_TITLE="Archivos SQL sin 'commit' detectados"
-          ISSUE_BODY=$(cat <<-EOF
-            Se detectaron los siguientes archivos SQL sin la sentencia 'commit':
-            $(for file in $FILES_WITHOUT_COMMIT; do
-             echo "- $file"
-            done)
-            EOF)
+          ISSUE_BODY="Se detectaron los siguientes archivos SQL sin la sentencia 'commit':\n\n"
+
+          # Añadir cada archivo al cuerpo del issue como una lista en Markdown
+          for file in $FILES_WITHOUT_COMMIT; do
+           ISSUE_BODY="${ISSUE_BODY}- ${file}\n"
+          done
 
           # Verificar si ya existe un issue abierto con el mismo título
           existing_issue=$(gh issue list --label "error-sql-commit" --state open --search "$ISSUE_TITLE" --json number -q '.[0].number')
 
           if [ -z "$existing_issue" ]; then
             # Crear un nuevo issue si no existe uno abierto
-            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "error-sql-commit"
+            echo -e "$ISSUE_BODY" | gh issue create --title "$ISSUE_TITLE" --label "error-sql-commit" --body -
             echo "Issue creado."
           else
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
