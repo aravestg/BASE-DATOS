@@ -35,3 +35,10 @@ jobs:
           else
             echo "Todos los archivos contienen la sentencia 'commit'."
           fi
+
+      - name: Subir reporte
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Reporte Archivos Sin Commit
+          path: report.txt          
