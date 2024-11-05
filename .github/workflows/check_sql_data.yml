@@ -6,7 +6,7 @@ on:
       - development
 
 jobs:
-  check_sql_files:
+  check_sql_data:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
