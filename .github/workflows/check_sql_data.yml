@@ -55,7 +55,7 @@ jobs:
           FILES_WITHOUT_COMMIT: ${{ env.files_without_commit }}
         run: |
           ISSUE_TITLE="Archivos SQL sin 'commit' detectados"
-          ISSUE_BODY="Se detectaron los siguientes archivos SQL sin la sentencia 'commit':\n\n"
+          ISSUE_BODY="Se detectaron los siguientes archivos SQL sin la sentencia 'commit':\n"
           
           # Añadir cada archivo al cuerpo del issue
           for file in $FILES_WITHOUT_COMMIT; do
