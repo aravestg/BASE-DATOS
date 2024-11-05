@@ -50,7 +50,7 @@ jobs:
       - name: Crear un issue si faltan commits
         if: failure()
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           ISSUE_TITLE="Archivos SQL sin 'commit' detectados"
           ISSUE_BODY="Se detectaron los siguientes archivos SQL sin la sentencia 'commit':\n\n"
