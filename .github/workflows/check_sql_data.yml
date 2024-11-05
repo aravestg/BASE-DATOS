@@ -8,6 +8,7 @@ on:
 jobs:
   check_sql_data:
     runs-on: ubuntu-latest
+    environment: development
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
