@@ -48,7 +48,7 @@ jobs:
           exit 1
 
       - name: Crear un issue si faltan commits
-        if: env.fail_job == 'true'
+        if: failure()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
