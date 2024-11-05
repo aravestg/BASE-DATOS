@@ -22,7 +22,7 @@ jobs:
               echo "El archivo $file no contiene la sentencia 'commit'."
               missing_commit_files+=("$file")
               # Generar una anotación de error personalizada
-              echo "::error file=$file,title=Falta 'commit'::El archivo no contiene la sentencia 'commit'."
+              echo "::error file=$file,title=FALTA 'commit'::El archivo no contiene la sentencia 'commit'."
             fi
           done < <(find . -type f -name 'DATA*.sql' -print0)
 
