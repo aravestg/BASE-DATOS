@@ -20,6 +20,8 @@ jobs:
             if ! grep -iq 'commit' "$file"; then
               echo "El archivo $file no contiene la sentencia 'commit'."
               missing_commit_files+=("$file")
+              # Generar una anotación de error
+              echo "::error file=$file,title=Falta 'commit'::El archivo no contiene la sentencia 'commit'."
             fi
           done < <(find . -type f -name 'DATA*.sql' -print0)
 
@@ -38,7 +40,7 @@ jobs:
 
       - name: Subir reporte
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Reporte Archivos Sin Commit
           path: report.txt          
