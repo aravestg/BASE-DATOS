@@ -59,7 +59,7 @@ jobs:
           
           # Añadir cada archivo al cuerpo del issue
           for file in $FILES_WITHOUT_COMMIT; do
-            ISSUE_BODY+="- $file\n"
+            ISSUE_BODY="${ISSUE_BODY}- ${file}\n"
           done
 
           # Verificar si ya existe un issue abierto con el mismo título
@@ -67,7 +67,7 @@ jobs:
 
           if [ -z "$existing_issue" ]; then
             # Crear un nuevo issue si no existe uno abierto
-            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "error-sql-commit"
+            printf "$ISSUE_BODY" | gh issue create --title "$ISSUE_TITLE" --label "error-sql-commit" --body -
             echo "Issue creado."
           else
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
