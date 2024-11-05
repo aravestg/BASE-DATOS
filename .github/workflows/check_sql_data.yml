@@ -10,9 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Buscar archivos SQL y verificar 'commit'
+        id: verificar_commit
         run: |
           echo "Buscando archivos DATA*.sql..."
           missing_commit_files=()
@@ -20,7 +21,7 @@ jobs:
             if ! grep -iq 'commit' "$file"; then
               echo "El archivo $file no contiene la sentencia 'commit'."
               missing_commit_files+=("$file")
-              # Generar una anotación de error
+              # Generar una anotación de error personalizada
               echo "::error file=$file,title=Falta 'commit'::El archivo no contiene la sentencia 'commit'."
             fi
           done < <(find . -type f -name 'DATA*.sql' -print0)
@@ -30,17 +31,25 @@ jobs:
             for file in "${missing_commit_files[@]}"; do
               echo "- $file"
             done
-            # Opcional: Generar un reporte detallado
+            # Generar un reporte detallado
             echo "Generando reporte en report.txt..."
             printf "%s\n" "${missing_commit_files[@]}" > report.txt
-            exit 1  # Falla el job si faltan 'commit'
+            # Marcar el job para que falle
+            echo "fail_job=true" >> $GITHUB_OUTPUT
           else
             echo "Todos los archivos contienen la sentencia 'commit'."
+            echo "fail_job=false" >> $GITHUB_OUTPUT
           fi
+
+      - name: Fallar el job si es necesario
+        if: steps.verificar_commit.outputs.fail_job == 'true'
+        run: |
+          echo "El job fallará debido a archivos sin 'commit'."
+          exit 1
 
       - name: Subir reporte
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: Reporte Archivos Sin Commit
-          path: report.txt          
+          path: report.txt        
