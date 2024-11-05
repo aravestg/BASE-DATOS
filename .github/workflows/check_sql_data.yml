@@ -1,4 +1,4 @@
-name: Verificar Sentencia 'commit' en Archivos SQL
+name: VERIFICAR Sentencia 'commit' en Archivos SQL
 
 on:
   push:
@@ -26,7 +26,6 @@ jobs:
               echo "::error file=$file,title=FALTA 'commit'::El archivo no contiene la sentencia 'commit'."
             fi
           done < <(find . -type f -name 'DATA*.sql' -print0)
-
           if [ ${#missing_commit_files[@]} -gt 0 ]; then
             echo "Archivos sin 'commit':"
             for file in "${missing_commit_files[@]}"; do
@@ -35,8 +34,9 @@ jobs:
             # Generar un reporte detallado
             echo "Generando reporte en report.txt..."
             printf "%s\n" "${missing_commit_files[@]}" > report.txt
-            # Marcar el job para que falle
+            # Marcar el job para que falle y guardar los archivos en una variable de entorno
             echo "fail_job=true" >> $GITHUB_OUTPUT
+            echo "files_without_commit=${missing_commit_files[*]}" >> $GITHUB_ENV
           else
             echo "Todos los archivos contienen la sentencia 'commit'."
             echo "fail_job=false" >> $GITHUB_OUTPUT
@@ -56,10 +56,10 @@ jobs:
         run: |
           ISSUE_TITLE="Archivos SQL sin 'commit' detectados"
           ISSUE_BODY="Se detectaron los siguientes archivos SQL sin la sentencia 'commit':\n\n"
-    
+          
           # Añadir cada archivo al cuerpo del issue
           for file in $FILES_WITHOUT_COMMIT; do
-           ISSUE_BODY+="- $file\n"
+            ISSUE_BODY+="- $file\n"
           done
 
           # Verificar si ya existe un issue abierto con el mismo título
@@ -72,10 +72,10 @@ jobs:
           else
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
           fi
-          
+
       - name: Subir reporte
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: Reporte Archivos Sin Commit
-          path: report.txt        
+          path: report.txt
