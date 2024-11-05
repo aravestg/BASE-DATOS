@@ -18,6 +18,7 @@ jobs:
         run: |
           echo "Buscando archivos DATA*.sql..."
           missing_commit_files=()
+          
           while IFS= read -r -d '' file; do
             if ! grep -iq 'commit' "$file"; then
               echo "El archivo $file no contiene la sentencia 'commit'."
@@ -26,20 +27,20 @@ jobs:
               echo "::error file=$file,title=FALTA 'commit'::El archivo no contiene la sentencia 'commit'."
             fi
           done < <(find . -type f -name 'DATA*.sql' -print0)
+          
           if [ ${#missing_commit_files[@]} -gt 0 ]; then
             echo "Archivos sin 'commit':"
             for file in "${missing_commit_files[@]}"; do
               echo "- $file"
             done
-            # Generar un reporte detallado
-            echo "Generando reporte en report.txt..."
-            printf "%s\n" "${missing_commit_files[@]}" > report.txt
+
             # Marcar el job para que falle y guardar los archivos en una variable de entorno
             echo "fail_job=true" >> $GITHUB_OUTPUT
             echo "files_without_commit=${missing_commit_files[*]}" >> $GITHUB_ENV
           else
             echo "Todos los archivos contienen la sentencia 'commit'."
             echo "fail_job=false" >> $GITHUB_OUTPUT
+
 
       - name: Fallar el job si es necesario
         if: steps.verificar_commit.outputs.fail_job == 'true'
@@ -54,6 +55,7 @@ jobs:
         run: |
           # Obtener el mensaje del último commit
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          
           # Obtener la lista de archivos sin 'commit' desde el entorno
           FILES_WITHOUT_COMMIT=${{ env.files_without_commit }}
           
@@ -75,10 +77,3 @@ jobs:
           else
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
           fi
-
-      - name: Subir reporte
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Reporte Archivos Sin Commit
-          path: report.txt
