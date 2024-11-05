@@ -67,7 +67,7 @@ jobs:
 
           if [ -z "$existing_issue" ]; then
             # Crear un nuevo issue si no existe uno abierto
-            echo -e "$ISSUE_BODY" | gh issue create --title "$ISSUE_TITLE" --label "error-sql-commit" --body -
+            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "error-sql-commit"
             echo "Issue creado."
           else
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
