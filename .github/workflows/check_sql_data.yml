@@ -67,27 +67,13 @@ jobs:
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
           fi
 
-      - name: Cerrar issues resueltos
-        if: success()
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          for file in $(git ls-files --modified --name-only 'DATA*.sql'); do
-            # Buscar issues abiertos relacionados con el archivo
-            issue_number=$(gh issue list --label "error-sql-commit" --state open --search "$file" --json number -q '.[0].number')
-            if [ ! -z "$issue_number" ]; then
-              # Cerrar el issue si existe
-              gh issue close $issue_number --comment "El archivo $file ahora contiene la sentencia 'commit'."
-              echo "Issue #$issue_number cerrado."
-            fi
-          done
 
       - name: Actualizar issues existentes
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          for file in $(git ls-files --modified --name-only 'DATA*.sql'); do
+          for file in $(git diff --name-only HEAD^ HEAD 'DATA*.sql'); do
             # Buscar issues abiertos relacionados con el archivo
             issue_number=$(gh issue list --label "error-sql-commit" --state open --search "$file" --json number -q '.[0].number')
             if [ ! -z "$issue_number" ]; then
