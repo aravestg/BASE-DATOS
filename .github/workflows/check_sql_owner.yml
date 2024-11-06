@@ -1,9 +1,9 @@
-name: VERIFICAR Owner en Definiciones de Objetos y Sentencias SQL
+name: VERIFICAR Propietario en Definiciones de Objetos y Sentencias SQL
 
 on:
   push:
     branches:
-      - 'audit/*'
+      - development
 
 jobs:
   check_sql_owner:
@@ -25,6 +25,7 @@ jobs:
               echo "::error file=$file,title=FALTA 'owner'::El archivo contiene definiciones de objetos o sentencias SQL sin especificar el propietario."
             fi
           done < <(find . -type f -name '*.sql' -print0)
+          
           if [ ${#missing_owner_files[@]} -gt 0 ]; then
             echo "Archivos con definiciones o sentencias sin propietario:"
             for file in "${missing_owner_files[@]}"; do
@@ -32,7 +33,8 @@ jobs:
             done
             # Marcar el job para que falle y guardar los archivos en una variable de entorno
             echo "fail_job=true" >> $GITHUB_OUTPUT
-            echo "files_without_owner=${missing_owner_files[*]}" >> $GITHUB_ENV
+            printf "%s\n" "${missing_owner_files[@]}" > files_without_owner.txt
+            echo "files_without_owner=$(cat files_without_owner.txt)" >> $GITHUB_ENV
           else
             echo "Todos los archivos especifican el propietario en las definiciones de objetos y sentencias SQL."
             echo "fail_job=false" >> $GITHUB_OUTPUT
@@ -54,17 +56,18 @@ jobs:
           BRANCH_NAME=${{ github.ref_name }}
           RUN_ID=${{ github.run_number }}
           
-          ISSUE_TITLE="${BRANCH_NAME}-${RUN_ID} - Archivos SQL sin owner detectados"
-          ISSUE_BODY="Se detectaron los siguientes archivos SQL sin especificar el owner en las definiciones de objetos o sentencias SQL:\n\n"
+          ISSUE_TITLE="${BRANCH_NAME}-${RUN_ID} - Archivos SQL sin propietario detectados"
+          ISSUE_BODY="Se detectaron los siguientes archivos SQL sin especificar el propietario en las definiciones de objetos o sentencias SQL:\n\n"
           # Añadir cada archivo al cuerpo del issue como una lista en Markdown
-          for file in $FILES_WITHOUT_OWNER; do
+          while IFS= read -r file; do
             ISSUE_BODY="${ISSUE_BODY}- ${file}\n"
-          done
+          done < <(echo "$FILES_WITHOUT_OWNER")
+
           # Verificar si ya existe un issue abierto con el mismo título
           existing_issue=$(gh issue list --label "error-sql-owner" --state open --search "$ISSUE_TITLE" --json number -q '.[0].number')
           if [ -z "$existing_issue" ]; then
             # Crear un nuevo issue si no existe uno abierto
-            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "error-sql-owner"
+            echo -e "$ISSUE_BODY" | gh issue create --title "$ISSUE_TITLE" --body -
             echo "Issue creado."
           else
             echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
