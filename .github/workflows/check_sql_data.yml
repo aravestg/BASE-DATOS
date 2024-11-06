@@ -18,7 +18,7 @@ jobs:
         run: |
           echo "Buscando archivos DATA*.sql modificados..."
           missing_commit_files=()
-          for file in $(git ls-files --modified --name-only 'DATA*.sql'); do
+          for file in $(git diff --name-only HEAD^ HEAD 'DATA*.sql'); do
             if ! grep -iq 'commit' "$file"; then
               echo "El archivo $file no contiene la sentencia 'commit'."
               missing_commit_files+=("$file")
