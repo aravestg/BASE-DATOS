@@ -1,4 +1,4 @@
-name: Verificar Owner en Definiciones de Objetos y Sentencias SQL
+name: VERIFICAR Owner en Definiciones de Objetos y Sentencias SQL
 
 on:
   push:
