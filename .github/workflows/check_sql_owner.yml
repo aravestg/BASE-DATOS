@@ -1,0 +1,71 @@
+name: Verificar Owner en Definiciones de Objetos y Sentencias SQL
+
+on:
+  push:
+    branches:
+      - 'audit/*'
+
+jobs:
+  check_sql_owner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Buscar archivos SQL y verificar propietario
+        id: verificar_owner
+        run: |
+          echo "Buscando archivos *.sql..."
+          missing_owner_files=()
+          while IFS= read -r -d '' file; do
+            if grep -Eiq '^\s*(create|alter|insert\s+into|update|delete\s+from)\s+(table|view|procedure|function|trigger|index|package|type|constraint)\s+[^.]+\s' "$file"; then
+              echo "El archivo $file contiene definiciones o sentencias sin especificar el propietario."
+              missing_owner_files+=("$file")
+              # Generar una anotación de error personalizada
+              echo "::error file=$file,title=FALTA 'owner'::El archivo contiene definiciones de objetos o sentencias SQL sin especificar el propietario."
+            fi
+          done < <(find . -type f -name '*.sql' -print0)
+          if [ ${#missing_owner_files[@]} -gt 0 ]; then
+            echo "Archivos con definiciones o sentencias sin propietario:"
+            for file in "${missing_owner_files[@]}"; do
+              echo "- $file"
+            done
+            # Marcar el job para que falle y guardar los archivos en una variable de entorno
+            echo "fail_job=true" >> $GITHUB_OUTPUT
+            echo "files_without_owner=${missing_owner_files[*]}" >> $GITHUB_ENV
+          else
+            echo "Todos los archivos especifican el propietario en las definiciones de objetos y sentencias SQL."
+            echo "fail_job=false" >> $GITHUB_OUTPUT
+
+      - name: Fallar el job si es necesario
+        if: steps.verificar_owner.outputs.fail_job == 'true'
+        run: |
+          echo "El job fallará debido a definiciones de objetos o sentencias SQL sin propietario."
+          exit 1
+
+      - name: Crear un issue si faltan propietarios
+        if: failure()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          FILES_WITHOUT_OWNER: ${{ env.files_without_owner }}
+        run: |
+          # Obtener el mensaje del último commit
+          COMMIT_MESSAGE=$(git log -1 --pretty=%B)
+          BRANCH_NAME=${{ github.ref_name }}
+          RUN_ID=${{ github.run_number }}
+          
+          ISSUE_TITLE="${BRANCH_NAME}-${RUN_ID} - Archivos SQL sin owner detectados"
+          ISSUE_BODY="Se detectaron los siguientes archivos SQL sin especificar el owner en las definiciones de objetos o sentencias SQL:\n\n"
+          # Añadir cada archivo al cuerpo del issue como una lista en Markdown
+          for file in $FILES_WITHOUT_OWNER; do
+            ISSUE_BODY="${ISSUE_BODY}- ${file}\n"
+          done
+          # Verificar si ya existe un issue abierto con el mismo título
+          existing_issue=$(gh issue list --label "error-sql-owner" --state open --search "$ISSUE_TITLE" --json number -q '.[0].number')
+          if [ -z "$existing_issue" ]; then
+            # Crear un nuevo issue si no existe uno abierto
+            gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "error-sql-owner"
+            echo "Issue creado."
+          else
+            echo "Ya existe un issue abierto para este error (issue #$existing_issue)."
+          fi
