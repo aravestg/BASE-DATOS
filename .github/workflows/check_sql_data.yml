@@ -55,7 +55,7 @@ jobs:
           # Obtener el mensaje del último commit
           COMMIT_MESSAGE=$(git log -1 --pretty=%B)
           BRANCH_NAME=${{ github.ref_name }}
-          RUNID=${{ github.run_id }}
+          RUNID=${{ github.run_number }}
           
           ISSUE_TITLE="${BRANCH_NAME}-${RUNID} - Archivos SQL sin 'commit' detectados"
           ISSUE_BODY="Se detectaron los siguientes archivos SQL sin la sentencia 'commit':\n\n"
